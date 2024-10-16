@@ -62,20 +62,30 @@ namespace ConsoleApp1
             Console.WriteLine("\nEnter the file extensions to organize (for example: .txt, .jpg, .mp3, etc.), separated by commas:\n");
             string[] fileExtensions = Console.ReadLine().Split(',');
 
+            // If no extensions are provided
+            if (fileExtensions.Length == 1 && string.IsNullOrWhiteSpace(fileExtensions[0]))
+            {
+                Console.WriteLine("No file has been moved.");
+                return;
+            }
+
             // 6. Sorting the files
-            // Handle files with extensions
+
+            // Tracking if any file has been moved
+            bool anyFileMoved = false;
             foreach (string extension in fileExtensions)
             {
-                string ext = extension.Trim(); // Remove extra spaces
-                string folderPath = Path.Combine(directory, ext.TrimStart('.')); // Create folder for the file type (e.g., "txt", "jpg")
+                string ext = extension.Trim();
+                if (string.IsNullOrEmpty(ext))
+                    continue; // Skip empty extensions
 
-                // Create the folder if it doesn't exist
+                string folderPath = Path.Combine(directory, ext.TrimStart('.'));
+
                 if (!Directory.Exists(folderPath))
                 {
                     Directory.CreateDirectory(folderPath);
                 }
 
-                // Move files of the given type to the folder
                 string[] files = Directory.GetFiles(directory, $"*{ext}");
                 if (files.Length == 0)
                 {
@@ -87,44 +97,57 @@ namespace ConsoleApp1
                 {
                     string fileName = Path.GetFileName(file);
                     string destFile = Path.Combine(folderPath, fileName);
-                    File.Move(file, destFile); // Move the file to the new folder
+                    File.Move(file, destFile);
                 }
-                Console.WriteLine($"\nFiles with {ext} extension have been moved to {folderPath}.\nu");
+                Console.WriteLine($"\nFiles with {ext} extension have been moved to {folderPath}.\n");
+                anyFileMoved = true;
             }
 
             // 7. Handle files without extensions
             string[] allFiles = Directory.GetFiles(directory);
-            string noExtensionFolder = Path.Combine(directory, "NoExtension");
-
-            if (!Directory.Exists(noExtensionFolder))
-            {
-                Directory.CreateDirectory(noExtensionFolder);
-            }
+            bool hasNoExtension = false;
 
             foreach (string file in allFiles)
             {
-                // Get the file extension
                 string fileExtension = Path.GetExtension(file);
 
-                // Check if the file has no extension and is not a directory
                 if (string.IsNullOrEmpty(fileExtension))
                 {
-                    // 
-                    Console.WriteLine("There are one or more files without extension(s). E.g. folders.\nnDo you want to move them to a separate folder? (Y or N)");
-                    string noExtAnswer = Console.ReadLine().ToLower();
+                    hasNoExtension = true;
+                    break;
+                }
+            }
 
-                    if (noExtAnswer == "y")
+            if (hasNoExtension)
+            {
+                Console.WriteLine("There are one or more files without extension(s).\nDo you want to move them to a separate folder? (Y or N)");
+                string noExtAnswer = Console.ReadLine().ToLower();
+
+                if (noExtAnswer == "y")
+                {
+                    string noExtensionFolder = Path.Combine(directory, "NoExtension");
+
+                    if (!Directory.Exists(noExtensionFolder))
                     {
-                        string fileName = Path.GetFileName(file);
-                        string destFile = Path.Combine(noExtensionFolder, fileName);
-                        File.Move(file, destFile); // Move the file without extension
-                        Console.WriteLine("Files without extensions have been moved to the NoExtension folder.");
+                        Directory.CreateDirectory(noExtensionFolder);
                     }
 
-                    else
+                    foreach (string file in allFiles)
                     {
-                        Console.WriteLine("Files without extensions were skipped.");
+                        string fileExtension = Path.GetExtension(file);
+
+                        if (string.IsNullOrEmpty(fileExtension))
+                        {
+                            string fileName = Path.GetFileName(file);
+                            string destFile = Path.Combine(noExtensionFolder, fileName);
+                            File.Move(file, destFile);
+                        }
                     }
+                    Console.WriteLine("Files without extensions have been moved to the NoExtension folder.");
+                }
+                else
+                {
+                    Console.WriteLine("Files without extensions were skipped.");
                 }
             }
             Console.WriteLine("File sorting complete!");
